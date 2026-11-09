@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(cuid())
+  username        String    @unique
+  email           String    @unique
+  passwordHash    String
+  avatar          String?
+  riotId          String?
+  rank            String    @default("Gold")
+  mainRole        String    @default("Duelist")
+  preferredServer String    @default("Frankfurt")
+  languages       String    @default("English")
+  discordUsername String?
+  bio             String?
+  role            String    @default("USER") // SUPER_ADMIN, ADMIN, MODERATOR, USER
+  status          String    @default("ACTIVE") // ACTIVE, SUSPENDED, BANNED
+  banReason       String?
+  suspendedUntil  DateTime?
+  lastLoginAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  parties         Party[]   @relation("UserParties")
+  reports         Report[]  @relation("UserReports")
+  resolvedReports Report[]  @relation("ResolvedReports")
+  adminLogs       AdminLog[] @relation("AdminLogs")
+}
+
+model Party {
+  id                String    @id @default(cuid())
+  ownerId           String
+  owner             User      @relation("UserParties", fields: [ownerId], references: [id], onDelete: Cascade)
+  name              String
+  partyCode         String?
+  partyType         String    @default("REAL") // "REAL" or "DEMO"
+  currentPlayers    Int       @default(4)
+  maxPlayers        Int       @default(5)
+  requiredRank      String
+  averageRank       String
+  preferredRole     String    @default("Any")
+  server            String
+  language          String    @default("English")
+  voiceChatRequired Boolean   @default(true)
+  description       String
+  status            String    @default("Looking for players") // "Looking for players", "Full", "In Game", "Closed", "Expired"
+  discordContact    String?
+  copyCount         Int       @default(0)
+  closedAt          DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  expiresAt         DateTime?
+
+  reports           Report[]  @relation("PartyReports")
+}
+
+model Report {
+  id             String    @id @default(cuid())
+  partyId        String
+  party          Party     @relation("PartyReports", fields: [partyId], references: [id], onDelete: Cascade)
+  reporterId     String?
+  reporter       User?     @relation("UserReports", fields: [reporterId], references: [id], onDelete: SetNull)
+  reason         String
+  details        String?
+  status         String    @default("PENDING") // PENDING, UNDER_REVIEW, RESOLVED, DISMISSED
+  moderatorNotes String?
+  resolvedAt     DateTime?
+  resolverId     String?
+  resolver       User?     @relation("ResolvedReports", fields: [resolverId], references: [id], onDelete: SetNull)
+  createdAt      DateTime  @default(now())
+}
+
+model AdminLog {
+  id         String   @id @default(cuid())
+  adminId    String
+  admin      User     @relation("AdminLogs", fields: [adminId], references: [id], onDelete: Cascade)
+  adminName  String
+  action     String   // LOGIN, USER_BAN, USER_UNBAN, USER_ROLE_CHANGE, USER_DELETE, PARTY_DELETE, PARTY_STATUS_CHANGE, REPORT_RESOLVE, SETTINGS_UPDATE, CONTENT_UPDATE
+  targetType String   // User, Party, Report, Setting, Announcement
+  targetId   String?
+  details    String?  // JSON string or summary
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+}
+
+model SiteSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model Announcement {
+  id        String    @id @default(cuid())
+  title     String
+  content   String
+  type      String    @default("INFO") // INFO, WARNING, MAINTENANCE, PROMO
+  isActive  Boolean   @default(true)
+  startDate DateTime?
+  endDate   DateTime?
+  createdBy String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
