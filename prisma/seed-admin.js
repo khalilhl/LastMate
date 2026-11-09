@@ -145,6 +145,91 @@ async function seedAdmin() {
     console.log("[OK] Initialized audit log");
   }
 
+  // 7. Seed Demo Bot & 12 Active Showcase Demo Parties
+  const existingDemoCount = await prisma.party.count({ where: { partyType: "DEMO" } });
+  if (existingDemoCount === 0) {
+    console.log("Generating 12 active 5/5 demo parties for showcase...");
+    const botUser = await prisma.user.upsert({
+      where: { email: "bot@lastmate.gg" },
+      update: {},
+      create: {
+        username: "LastMate Squads",
+        email: "bot@lastmate.gg",
+        passwordHash: "$2a$12$DEMO_SQUADS_BOT_ACCOUNT_DO_NOT_LOGIN_DIRECTLY$",
+        role: "USER",
+        status: "ACTIVE",
+        rank: "Ascendant 2",
+        mainRole: "Any",
+        preferredServer: "Frankfurt (EU Central)",
+        languages: "English",
+        bio: "Official automated squad generator showcasing active 5/5 VALORANT parties.",
+      },
+    });
+
+    const demoSquads = [
+      { name: "Phantom Protocol 5-Stack", rank: "Ascendant 2", server: "Frankfurt (EU Central)", role: "Duelist", lang: "English", desc: "Full squad currently in custom lobby warmup before jumping into ranked games." },
+      { name: "Viper Pit Tactical Squad", rank: "Diamond 3", server: "London (EU West)", role: "Controller", lang: "English, French", desc: "Practicing 5-man site retakes and default executes on Haven. Full squad locked." },
+      { name: "Haven Retake Specialists", rank: "Immortal 1", server: "Paris (EU West)", role: "Initiator", lang: "French, English", desc: "Esports scrim lineup filled and in game. Great comms, squad complete!" },
+      { name: "Ascendant Competitive Grind", rank: "Ascendant 1", server: "Frankfurt (EU Central)", role: "Sentinel", lang: "English, German", desc: "Nightly competitive 5-stack with Discord comms. Squad roster is filled." },
+      { name: "Radiant Ascent High Elo", rank: "Radiant", server: "London (EU West)", role: "Any", lang: "English", desc: "Ranked climb stack. Roster locked for this match, thanks for checking LastMate!" },
+      { name: "Bind Teleport Operators", rank: "Platinum 2", server: "Madrid (EU South)", role: "Duelist", lang: "Spanish, English", desc: "High-elo 5-stack testing new patch setups in competitive queue." },
+      { name: "Split Heaven Controllers", rank: "Diamond 1", server: "Warsaw (EU East)", role: "Controller", lang: "Polish, English", desc: "Five-stack premier roster locked and ready to compete." },
+      { name: "Omen Paranoia Unit", rank: "Ascendant 3", server: "Frankfurt (EU Central)", role: "Controller", lang: "English", desc: "Warmup matches concluded, 5/5 players ready for the competitive push." },
+      { name: "Sunset Mid Lurkers", rank: "Immortal 2", server: "Paris (EU West)", role: "Initiator", lang: "English, French", desc: "Nightly high-tier grind. Playing competitive queue on Paris." },
+      { name: "Icebox B-Site Rushers", rank: "Diamond 2", server: "Stockholm (EU North)", role: "Duelist", lang: "English", desc: "Locked and ready. 5/5 players with active Discord voice." },
+      { name: "Lotus C-Site Executors", rank: "Platinum 3", server: "London (EU West)", role: "Sentinel", lang: "English", desc: "Squad complete, jumping into ranked right now." },
+      { name: "Abyss Vertical Vanguard", rank: "Ascendant 1", server: "Frankfurt (EU Central)", role: "Initiator", lang: "English, German", desc: "Exploring Abyss setups. 5-stack complete." },
+    ];
+
+    const demoData = demoSquads.map((s) => ({
+      ownerId: botUser.id,
+      name: s.name,
+      partyCode: null,
+      partyType: "DEMO",
+      currentPlayers: 5,
+      maxPlayers: 5,
+      requiredRank: s.rank,
+      averageRank: s.rank,
+      preferredRole: s.role,
+      server: s.server,
+      language: s.lang,
+      voiceChatRequired: true,
+      description: s.desc,
+      status: "FULL",
+    }));
+
+    await prisma.party.createMany({ data: demoData });
+
+    const now = new Date();
+    const nextRotation = new Date(now.getTime() + 15 * 60 * 1000);
+    await prisma.siteSetting.upsert({
+      where: { key: "demo.enabled" },
+      update: { value: "true" },
+      create: { key: "demo.enabled", value: "true" },
+    });
+    await prisma.siteSetting.upsert({
+      where: { key: "demo.targetCount" },
+      update: { value: "12" },
+      create: { key: "demo.targetCount", value: "12" },
+    });
+    await prisma.siteSetting.upsert({
+      where: { key: "demo.rotationIntervalMinutes" },
+      update: { value: "15" },
+      create: { key: "demo.rotationIntervalMinutes", value: "15" },
+    });
+    await prisma.siteSetting.upsert({
+      where: { key: "demo.lastRotationTime" },
+      update: { value: now.toISOString() },
+      create: { key: "demo.lastRotationTime", value: now.toISOString() },
+    });
+    await prisma.siteSetting.upsert({
+      where: { key: "demo.nextRotationTime" },
+      update: { value: nextRotation.toISOString() },
+      create: { key: "demo.nextRotationTime", value: nextRotation.toISOString() },
+    });
+    console.log("[OK] Generated 12 demo parties successfully.");
+  }
+
   console.log("=== ADMIN SEED COMPLETED SUCCESSFULLY ===");
 }
 

@@ -43,6 +43,19 @@ export async function GET(req: NextRequest) {
       ];
     }
 
+    // Ensure active demo parties exist (self-healing on fresh database deployments)
+    if (partyType !== "REAL" && !ownerId) {
+      try {
+        const demoCount = await prisma.party.count({ where: { partyType: "DEMO" } });
+        if (demoCount === 0) {
+          const { rotateDemoParties } = await import("@/lib/demoService");
+          await rotateDemoParties(12);
+        }
+      } catch (seedErr) {
+        console.error("Auto-population of demo parties error:", seedErr);
+      }
+    }
+
     if (search.trim()) {
       const q = search.trim();
       where.OR = [

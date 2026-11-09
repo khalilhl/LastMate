@@ -1,13 +1,17 @@
 const { execSync, spawn } = require("child_process");
+const path = require("path");
 
 console.log("==========================================");
 console.log("🎮 LASTMATE — PRODUCTION STARTUP SEQUENCE");
 console.log("==========================================");
 
-// 1. Sync database schema (PostgreSQL or SQLite)
+const prismaBin = path.join(__dirname, "..", "node_modules", "prisma", "build", "index.js");
+const nextBin = path.join(__dirname, "..", "node_modules", "next", "dist", "bin", "next");
+
+// 1. Sync database schema (PostgreSQL)
 try {
   console.log("📦 [1/3] Syncing database schema with Prisma...");
-  execSync("npx prisma db push --skip-generate", { stdio: "inherit" });
+  execSync(`node "${prismaBin}" db push --skip-generate`, { stdio: "inherit" });
   console.log("✅ Database schema in sync.");
 } catch (err) {
   console.error("⚠️ [Warning] Database push encountered an issue, continuing...", err.message);
@@ -26,9 +30,8 @@ try {
 const port = process.env.PORT || 3000;
 console.log(`🚀 [3/3] Launching Next.js on port ${port}...`);
 
-const nextServer = spawn("npx", ["next", "start", "-p", String(port)], {
+const nextServer = spawn(process.execPath, [nextBin, "start", "-p", String(port)], {
   stdio: "inherit",
-  shell: true,
 });
 
 nextServer.on("error", (err) => {

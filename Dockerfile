@@ -31,10 +31,11 @@ FROM base AS runner
 ENV NODE_ENV production
 ENV NEXT_TELEMETRY_DISABLED 1
 ENV PORT 3000
+ENV HOME /app
 
 # Create non-root system user for security
 RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+RUN adduser --system --uid 1001 nextjs -G nodejs
 
 # Copy essential runtime files
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
